@@ -1,0 +1,154 @@
+{
+  "name": "ImageStep recipe — field photo ingest: Drive HEIC → EXIF date + GPS → label → publish → manifest Sheet",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": { "item": [{ "mode": "everyMinute" }] },
+        "triggerOn": "specificFolder",
+        "folderToWatch": { "__rl": true, "mode": "list", "value": "REPLACE_WITH_DRIVE_FOLDER_ID", "cachedResultName": "field-photos" },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "id": "c3d4e5f6-0001-4c00-8000-000000000001",
+      "name": "New Field Photo",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "credentials": { "googleDriveOAuth2Api": { "id": "REPLACE_ME", "name": "Google Drive account" } }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": { "__rl": true, "mode": "id", "value": "={{ $json.id }}" },
+        "options": { "binaryPropertyName": "data" }
+      },
+      "id": "c3d4e5f6-0002-4c00-8000-000000000002",
+      "name": "Download Photo",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [220, 0],
+      "credentials": { "googleDriveOAuth2Api": { "id": "REPLACE_ME", "name": "Google Drive account" } }
+    },
+    {
+      "parameters": {
+        "resource": "asset",
+        "operation": "upload",
+        "binaryProperty": "data",
+        "folder": "",
+        "waitForReady": true
+      },
+      "id": "c3d4e5f6-0003-4c00-8000-000000000003",
+      "name": "Upload (wait for EXIF)",
+      "type": "n8n-nodes-imagestep.imageStep",
+      "typeVersion": 1,
+      "position": [440, 0],
+      "credentials": { "imageStepApi": { "id": "REPLACE_ME", "name": "ImageStep account" } }
+    },
+    {
+      "parameters": {
+        "resource": "asset",
+        "operation": "get",
+        "assetId": "={{ $json.assetId }}"
+      },
+      "id": "c3d4e5f6-0004-4c00-8000-000000000004",
+      "name": "Read Metadata",
+      "type": "n8n-nodes-imagestep.imageStep",
+      "typeVersion": 1,
+      "position": [660, 0],
+      "credentials": { "imageStepApi": { "id": "REPLACE_ME", "name": "ImageStep account" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Date + GPS → the collection label `YYYY-MM/<lat,lon>` (3 decimals ≈ 100 m). No reverse geocoding.\nreturn $input.all().map((item) => {\n  const a = item.json;\n  const m = a.metadata || {};\n  const taken = m.dateTimeOriginal ? new Date(m.dateTimeOriginal) : null;\n  const month = taken ? taken.toISOString().slice(0, 7) : 'unknown-date';\n  const hasGps = typeof m.gpsLatitude === 'number' && typeof m.gpsLongitude === 'number';\n  const place = hasGps ? `${m.gpsLatitude.toFixed(3)},${m.gpsLongitude.toFixed(3)}` : 'no-gps';\n  return {\n    json: {\n      file: $('New Field Photo').item.json.name,\n      assetId: a.assetId || a.id,\n      takenAt: taken ? taken.toISOString() : '',\n      latitude: hasGps ? m.gpsLatitude : '',\n      longitude: hasGps ? m.gpsLongitude : '',\n      label: `${month}/${place}`,\n      width: a.width,\n      height: a.height\n    }\n  };\n});"
+      },
+      "id": "c3d4e5f6-0005-4c00-8000-000000000005",
+      "name": "Date & Place Label",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.imagestep.dev/api/v1/assets/update",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ids: [$json.assetId], folderId: $json.label, published: true }) }}",
+        "options": {}
+      },
+      "id": "c3d4e5f6-0006-4c00-8000-000000000006",
+      "name": "Label by Date & Place",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 0],
+      "credentials": { "httpHeaderAuth": { "id": "REPLACE_ME", "name": "ImageStep ApiKey header (Authorization: ApiKey isk_…)" } }
+    },
+    {
+      "parameters": {
+        "resource": "asset",
+        "operation": "get",
+        "assetId": "={{ $('Date & Place Label').item.json.assetId }}"
+      },
+      "id": "c3d4e5f6-0007-4c00-8000-000000000007",
+      "name": "Published Asset",
+      "type": "n8n-nodes-imagestep.imageStep",
+      "typeVersion": 1,
+      "position": [1320, 0],
+      "credentials": { "imageStepApi": { "id": "REPLACE_ME", "name": "ImageStep account" } }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "mode": "list", "value": "REPLACE_WITH_SPREADSHEET_ID", "cachedResultName": "Field photo manifest" },
+        "sheetName": { "__rl": true, "mode": "list", "value": "gid=0", "cachedResultName": "Sheet1" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "file": "={{ $('Date & Place Label').item.json.file }}",
+            "assetId": "={{ $json.assetId }}",
+            "takenAt": "={{ $('Date & Place Label').item.json.takenAt }}",
+            "latitude": "={{ $('Date & Place Label').item.json.latitude }}",
+            "longitude": "={{ $('Date & Place Label').item.json.longitude }}",
+            "label": "={{ $json.folder }}",
+            "width": "={{ $json.width }}",
+            "height": "={{ $json.height }}",
+            "publicUrl": "={{ $json.publicUrl }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "file", "displayName": "file", "type": "string", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true },
+            { "id": "assetId", "displayName": "assetId", "type": "string", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true },
+            { "id": "takenAt", "displayName": "takenAt", "type": "string", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true },
+            { "id": "latitude", "displayName": "latitude", "type": "number", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true },
+            { "id": "longitude", "displayName": "longitude", "type": "number", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true },
+            { "id": "label", "displayName": "label", "type": "string", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true },
+            { "id": "width", "displayName": "width", "type": "number", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true },
+            { "id": "height", "displayName": "height", "type": "number", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true },
+            { "id": "publicUrl", "displayName": "publicUrl", "type": "string", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c3d4e5f6-0008-4c00-8000-000000000008",
+      "name": "Append Manifest Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1540, 0],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "REPLACE_ME", "name": "Google Sheets account" } }
+    }
+  ],
+  "connections": {
+    "New Field Photo": { "main": [[{ "node": "Download Photo", "type": "main", "index": 0 }]] },
+    "Download Photo": { "main": [[{ "node": "Upload (wait for EXIF)", "type": "main", "index": 0 }]] },
+    "Upload (wait for EXIF)": { "main": [[{ "node": "Read Metadata", "type": "main", "index": 0 }]] },
+    "Read Metadata": { "main": [[{ "node": "Date & Place Label", "type": "main", "index": 0 }]] },
+    "Date & Place Label": { "main": [[{ "node": "Label by Date & Place", "type": "main", "index": 0 }]] },
+    "Label by Date & Place": { "main": [[{ "node": "Published Asset", "type": "main", "index": 0 }]] },
+    "Published Asset": { "main": [[{ "node": "Append Manifest Row", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "meta": { "templateCredsSetupCompleted": false }
+}
