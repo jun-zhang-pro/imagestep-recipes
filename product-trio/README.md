@@ -23,7 +23,7 @@ re-generation. The AI op and the two deterministic ops run side by side as three
 
 ```sh
 pnpm install
-export IMAGESTEP_API_KEY=isk_…
+export IMAGESTEP_API_KEY=mm_sk_…
 node product-trio/trio.mjs ./product.jpg --dry-run     # price first
 node product-trio/trio.mjs ./product.jpg
 ```

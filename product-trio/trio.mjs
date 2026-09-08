@@ -1,7 +1,7 @@
 // Product trio: one product photo → cut-out (remove_bg) · white-padded packshot · 1200 px web size,
 // in parallel, all from the same upload.
 //
-//   IMAGESTEP_API_KEY=isk_… node trio.mjs ./product.jpg [--pad 120] [--width 1200] [--folder product-trio] [--dry-run]
+//   IMAGESTEP_API_KEY=mm_sk_… node trio.mjs ./product.jpg [--pad 120] [--width 1200] [--folder product-trio] [--dry-run]
 import { basename } from "node:path";
 import { ImageStep } from "imagestep";
 

@@ -15,14 +15,14 @@ preview is a browser-friendly rendition.
 - **Script**: Node 18+ and a folder of photos (`.heic` / `.jpg` / `.png`; anything without EXIF
   still ingests, it just lands under `unknown-date/no-gps`).
 - **n8n**: Google Drive + Google Sheets credentials, the `n8n-nodes-imagestep` node, and one
-  generic *Header Auth* credential (`Authorization: ApiKey isk_…`) for the single HTTP Request
+  generic *Header Auth* credential (`Authorization: ApiKey mm_sk_…`) for the single HTTP Request
   node that sets the label. A Drive folder the phone syncs into, and a Sheet as the manifest.
 
 ## Run the script
 
 ```sh
 pnpm install
-export IMAGESTEP_API_KEY=isk_…
+export IMAGESTEP_API_KEY=mm_sk_…
 node field-photo-ingest/ingest.mjs ./photos               # writes ./photos/manifest.csv
 node field-photo-ingest/ingest.mjs ./photos --out site-a.csv --concurrency 4
 ```

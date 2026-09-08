@@ -22,7 +22,7 @@ a new version, so every row records which version drew it.
 
 ```sh
 pnpm install                  # in the repo root; pulls `imagestep` from npm
-export IMAGESTEP_API_KEY=isk_…
+export IMAGESTEP_API_KEY=mm_sk_…
 node social-carousel/carousel.mjs --refs hero-front.jpg,hero-side.jpg --rows social-carousel/rows.example.csv --dry-run
 node social-carousel/carousel.mjs --refs hero-front.jpg,hero-side.jpg --rows social-carousel/rows.example.csv
 ```

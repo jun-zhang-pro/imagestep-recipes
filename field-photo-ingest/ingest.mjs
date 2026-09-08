@@ -1,7 +1,7 @@
 // Field photo ingest: a folder of phone photos (HEIC) → upload → EXIF date + GPS → label
 // `YYYY-MM/<lat,lon>` → publish → manifest CSV with stable URLs. No reverse geocoding: coords only.
 //
-//   IMAGESTEP_API_KEY=isk_… node ingest.mjs ./photos [--out manifest.csv] [--concurrency 4]
+//   IMAGESTEP_API_KEY=mm_sk_… node ingest.mjs ./photos [--out manifest.csv] [--concurrency 4]
 import { readdir, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { ImageStep } from "imagestep";

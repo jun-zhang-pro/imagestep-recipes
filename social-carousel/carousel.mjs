@@ -1,7 +1,7 @@
 // Social carousel: Google Sheet rows (headline, subline) → 4 on-brand images per row with a
 // reference-bound ImageStep preset → publish → URLs back in the sheet (as a CSV next to the input).
 //
-//   IMAGESTEP_API_KEY=isk_… node carousel.mjs --refs hero-1.jpg,hero-2.jpg --rows rows.csv
+//   IMAGESTEP_API_KEY=mm_sk_… node carousel.mjs --refs hero-1.jpg,hero-2.jpg --rows rows.csv
 //
 // Options: --preset <slug> (default carousel-brand) · --per-row <n> (default 4) · --out <file>
 // (default <rows>.out.csv) · --model <id> (default google/gemini-3.1-flash-image-preview) ·

@@ -20,7 +20,7 @@ your automations. Each recipe is a folder with the same four things:
 
 ```sh
 pnpm install
-export IMAGESTEP_API_KEY=isk_…          # https://imagestep.dev → API keys
+export IMAGESTEP_API_KEY=mm_sk_…          # https://imagestep.dev → API keys
 pnpm carousel --refs hero-1.jpg,hero-2.jpg --rows social-carousel/rows.example.csv
 pnpm trio ./product.jpg
 pnpm ingest ./photos

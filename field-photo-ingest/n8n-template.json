@@ -83,7 +83,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [1100, 0],
-      "credentials": { "httpHeaderAuth": { "id": "REPLACE_ME", "name": "ImageStep ApiKey header (Authorization: ApiKey isk_…)" } }
+      "credentials": { "httpHeaderAuth": { "id": "REPLACE_ME", "name": "ImageStep ApiKey header (Authorization: ApiKey mm_sk_…)" } }
     },
     {
       "parameters": {
