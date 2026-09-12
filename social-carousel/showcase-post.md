@@ -11,7 +11,7 @@ published to a CDN, with the four URLs written back into the row. No design tool
 1. **Google Sheets Trigger** — polls for new rows.
 2. **ImageStep → Operation → generate**, count 4, prompt built from the row. The consistency part
    is one option: *AI Preset* points at a preset I saved once with three reference photos of the
-   mascot attached (`references`). Every call sends those to the model as "this is who the
+   mascot attached as a **subject** — the images plus the locked wording. Every call sends those to the model as "this is who the
    character is"; the row's text is the scene. Changing the photos makes a new preset version, so
    I can tell later which batch drew which look.
 3. **Code** — flatten the four published URLs into `url1..url4`.
