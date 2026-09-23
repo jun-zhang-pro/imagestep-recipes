@@ -23,23 +23,26 @@ re-generation. The AI op and the two deterministic ops run side by side as three
 
 ```sh
 pnpm install
-export IMAGESTEP_API_KEY=mm_sk_…
-node product-trio/trio.mjs ./product.jpg --dry-run     # price first
-node product-trio/trio.mjs ./product.jpg
+export IMAGESTEP_API_KEY=is_sk_…
+node product-trio/trio.mjs examples/product.jpg --dry-run     # price first
+node product-trio/trio.mjs examples/product.jpg
 ```
 
 It uploads once, prices the AI op, then runs the three ops with `Promise.all`, waits for all
 three, publishes every output and prints one JSON line per variant (`variant`, `assetId`,
-`publicUrl`, `width`, `height`, `jobId`). Optional: `--pad 160`, `--width 1600`, `--folder shop`.
+`publicUrl`, `width`, `height`, `jobId`). Optional: `--pad 160`, `--width 1600`, `--collection shop`.
 
 Want the packshot padded around the *cut-out* rather than the raw photo? Chain it: pass the
-cut-out's `assetId` to a second `pad` — or save the chain as a preset (`POST /api/v1/presets`) and
-run it as one job.
+cut-out's `assetId` to a second `pad` — or send the chain as one job (`steps: [remove_bg, pad]`),
+and save it as a preset once it is worth a name. The
+[marketplace cut-out](https://imagestep.dev/docs/recipes?utm_source=github&utm_medium=recipes#marketplace-cutout)
+is that chain, finished.
 
 ## Run the n8n template
 
 Import `n8n-template.json`, then set the Drive folder on **New Product Photo**, the Sheet on
-**Append Manifest Row**, and the ImageStep credential on the four ImageStep nodes. Drop a photo in
+**Append Manifest Row**, and the ImageStep credential on the four ImageStep nodes. The three
+branch nodes have *Store Result* on: each output is kept as an asset with its own URL. Drop a photo in
 the folder: within a minute the sheet has three rows for it, one per variant, with URLs.
 
 ## What it costs

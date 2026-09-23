@@ -1,5 +1,5 @@
-// Social carousel: Google Sheet rows (headline, subline) → 4 on-brand images per row with a
-// reference-bound ImageStep preset → publish → URLs back in the sheet (as a CSV next to the input).
+// Social carousel: sheet rows (headline, subline) → 4 on-brand images per row, the same character on every one →
+// publish → URLs back next to the rows (as a CSV beside the input).
 //
 //   IMAGESTEP_API_KEY=is_sk_… node carousel.mjs --refs hero-1.jpg,hero-2.jpg \
 //     --describe "a woman in her thirties with short silver hair, navy jacket" --rows rows.csv
@@ -7,9 +7,9 @@
 // Options: --preset <slug> (default carousel-brand) · --per-row <n> (default 4) · --out <file>
 // (default <rows>.out.csv) · --model <id> (default google/gemini-3.1-flash-image-preview) ·
 // --subject <name> (default hero) · --describe <words> (the locked descriptor) ·
-// --dry-run (price only, spend nothing).
+// --dry-run (price only, spend nothing). IMAGESTEP_BASE_URL points it at another API host.
 //
-// The Sheet itself is the n8n template's job (n8n-template.json); this script takes the same rows
+// The sheet itself is the n8n template's job (n8n-template.json); this script takes the same rows
 // as a CSV export so it runs from zero with one API key.
 import { readFile, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
@@ -34,29 +34,30 @@ if (refs.length > 4) fail("at most 4 reference images");
 // the preset so it is word-for-word identical on the run three weeks from now.
 if (!descriptor) fail('--describe needs the locked wording, e.g. --describe "a woman in her thirties with short silver hair"');
 
-const client = new ImageStep({ apiKey: process.env.IMAGESTEP_API_KEY });
+const client = new ImageStep({ apiKey: process.env.IMAGESTEP_API_KEY, baseUrl: process.env.IMAGESTEP_BASE_URL });
 
 // 1. Reference images → assets (sha1 dedupe: re-running with the same files re-uses them).
 const referenceAssetIds = [];
 for (const file of refs) {
-  const asset = await client.assets.upload(file, { folder: "carousel/references", wait: true });
+  const asset = await client.assets.upload(file, { collection: "carousel-references", wait: true });
   referenceAssetIds.push(asset.id);
   console.log(`reference ${basename(file)} → ${asset.id}`);
 }
 
-// 2. The preset: model + base prompt + one subject. Same subject → same version; changing either
-//    the images or the wording is a new version, so every row below records which one produced it.
+// 2. The preset: one generate step + one subject. Same subject → same version; changing the images,
+//    the wording or the step is a new version, and every row below runs the version pinned here.
 const subject = { name: subjectName, referenceAssetIds, descriptor };
 const preset = await upsertPreset(slug, subject);
-console.log(`preset ${preset.slug} v${preset.version} (${preset.model}) subject=${subjectName} images=${referenceAssetIds.join(",")}`);
+const pinned = `${preset.slug}@${preset.version}`;
+console.log(`preset ${pinned} (${model}) subject=${subjectName} images=${referenceAssetIds.join(",")}`);
 
-// 3. Rows → images. The row's own prompt overrides the preset's default prompt, and it writes
+// 3. Rows → images. The row's prompt replaces the step's prompt (the preset's ONE AI step), and it writes
 //    {{subject.<name>}} rather than re-describing the subject — the server expands it to the stored
 //    descriptor, so every row says the same words. Two jobs at a time (the AI concurrency limit).
 const rows = parseCsv(await readFile(rowsFile, "utf8"));
 if (!rows.length) fail(`${rowsFile} has no rows (needs headline, subline)`);
 
-const estimate = await client.ops.generate(promptFor(rows[0]), { presetId: preset.id, count: perRow, dryRun: true });
+const estimate = await client.ops.generate(promptFor(rows[0]), { presetId: pinned, count: perRow, dryRun: true });
 console.log(`dry run: ${estimate.estimatedCredits} credits per row × ${rows.length} rows (balance ${estimate.creditBalance})`);
 if (args["dry-run"]) process.exit(0);
 
@@ -65,26 +66,28 @@ for (let i = 0; i < rows.length; i += 2) {
   const batch = rows.slice(i, i + 2).map(async (row, j) => {
     const idx = i + j + 1;
     const job = await client.ops.generate(promptFor(row), {
-      presetId: preset.id,
+      presetId: pinned,
       count: perRow,
-      folder: `carousel/${slugify(row.headline)}`,
-      wait: { timeoutMs: 300_000, onProgress: (j) => process.stdout.write(`\rrow ${idx}: ${j.completedItems ?? 0}/${j.totalItems}`) }
+      collection: `carousel-${slugify(row.headline)}`,
+      wait: { timeoutMs: 300_000, onProgress: (p) => process.stdout.write(`\rrow ${idx}: ${p.completedItems ?? 0}/${p.totalItems}`) }
     });
     const outputs = await client.jobs.outputs(job);
     const published = await client.assets.publish(outputs.map((a) => a.id));
     console.log(`\nrow ${idx} "${row.headline}": ${published.length} images, job ${job.id}`);
-    return { ...row, presetVersion: preset.version, jobId: job.id, urls: published.map((a) => a.publicUrl) };
+    return { ...row, preset: pinned, jobId: job.id, assetIds: published.map((a) => a.id), urls: published.map((a) => a.publicUrl ?? "") };
   });
   results.push(...(await Promise.all(batch)));
 }
 
 // 4. URLs back next to the rows.
-const header = ["headline", "subline", "presetVersion", "jobId", ...Array.from({ length: perRow }, (_, k) => `url${k + 1}`)];
+const header = ["headline", "subline", "preset", "jobId", ...Array.from({ length: perRow }, (_, k) => `url${k + 1}`)];
 const lines = [header.join(",")];
-for (const r of results) lines.push([r.headline, r.subline, r.presetVersion, r.jobId, ...r.urls].map(csvCell).join(","));
+for (const r of results) lines.push([r.headline, r.subline, r.preset, r.jobId, ...r.urls].map(csvCell).join(","));
 await writeFile(outFile, lines.join("\n") + "\n");
 console.log(`wrote ${outFile}`);
 console.log("check consistency: open url1..url4 of one row side by side — same face / product, different scene.");
+// One line a program can read: what this run made, by row.
+console.log(JSON.stringify({ recipe: "social-carousel", preset: pinned, referenceAssetIds, rows: results.map((r) => ({ jobId: r.jobId, assetIds: r.assetIds })) }));
 
 function promptFor(row) {
   return `${row.headline}. ${row.subline}. Social carousel card, {{subject.${subjectName}}} as the hero, clean background with room for text, 4:5 portrait.`;
@@ -92,21 +95,27 @@ function promptFor(row) {
 
 async function upsertPreset(slug, subject) {
   const body = {
-    title: "Carousel brand character",
+    name: "Carousel brand character",
     slug,
-    mode: "ai_image",
-    model,
-    prompt: `{{subject.${subject.name}}} in a fresh scene. Keep face, hair, outfit and proportions exactly as in the reference images. Clean composition, no text.`,
-    parameters: { aspectRatio: "4:5", temperature: 0.6 },
-    subjects: [subject]
+    description: "One character, a new scene per row: the subject pins the look, the row brings the scene.",
+    subjects: [subject],
+    steps: [
+      {
+        op: "generate",
+        model,
+        prompt: `{{subject.${subject.name}}} in a fresh scene. Keep face, hair, outfit and proportions exactly as in the reference images. Clean composition, no text.`,
+        parameters: { aspectRatio: "4:5" }
+      }
+    ]
   };
   try {
-    const existing = await client.aiPresets.get(slug);
-    const same = JSON.stringify(existing.subjects || []) === JSON.stringify([subject]) && existing.model === model;
-    return same ? existing : client.aiPresets.update(slug, body);
+    const existing = await client.presets.get(slug);
+    const same =
+      JSON.stringify(existing.subjects || []) === JSON.stringify(body.subjects) && JSON.stringify(existing.steps) === JSON.stringify(body.steps);
+    return same ? existing : client.presets.update(slug, { subjects: body.subjects, steps: body.steps });
   } catch (err) {
     if (err.status !== 404) throw err;
-    return client.aiPresets.create(body);
+    return client.presets.create(body);
   }
 }
 

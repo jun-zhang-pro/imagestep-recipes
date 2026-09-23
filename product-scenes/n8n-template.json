@@ -1,5 +1,5 @@
 {
-  "name": "ImageStep recipe — social carousel: Sheet row → 4 cards, same character → URLs back",
+  "name": "ImageStep recipe — product scenes: Sheet row → the same product in a new scene → Instagram size → URL back",
   "nodes": [
     {
       "parameters": {
@@ -14,7 +14,7 @@
           "__rl": true,
           "mode": "list",
           "value": "REPLACE_WITH_SPREADSHEET_ID",
-          "cachedResultName": "Carousel"
+          "cachedResultName": "Product scenes"
         },
         "sheetName": {
           "__rl": true,
@@ -25,7 +25,7 @@
         "event": "rowAdded",
         "options": {}
       },
-      "id": "a1b2c3d4-0001-4c00-8000-000000000001",
+      "id": "b2c3d4e5-0001-4c00-8000-000000000001",
       "name": "Google Sheets Trigger",
       "type": "n8n-nodes-base.googleSheetsTrigger",
       "typeVersion": 1,
@@ -42,9 +42,9 @@
     },
     {
       "parameters": {
-        "jsCode": "// The row brings the scene; the preset's subject brings the character. {{subject.hero}} is expanded by ImageStep to\n// the words saved on the preset — it is built here, in code, because n8n reads {{ }} in a field as its own expression.\nreturn $input.all().map((item) => ({\n  json: {\n    row_number: item.json.row_number,\n    prompt: `${item.json.headline}. ${item.json.subline}. Social carousel card, {{subject.hero}} as the hero, clean background with room for text, 4:5 portrait.`\n  }\n}));"
+        "jsCode": "// The row says where the product is; the preset's subject says what the product is. {{subject.product}} is expanded\n// by ImageStep to the words saved on the preset — built here, in code, because n8n reads {{ }} in a field as its own.\nreturn $input.all().map((item) => ({\n  json: {\n    row_number: item.json.row_number,\n    prompt: `{{subject.product}} ${item.json.scene}. Product photography, the product sharp and fully in frame, no text.`\n  }\n}));"
       },
-      "id": "a1b2c3d4-0005-4c00-8000-000000000005",
+      "id": "b2c3d4e5-0002-4c00-8000-000000000002",
       "name": "Build the Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -57,23 +57,22 @@
       "parameters": {
         "resource": "preset",
         "operation": "run",
-        "preset": "carousel-brand",
+        "preset": "product-scenes",
         "presetVersion": 0,
         "inputMode": "none",
         "prompt": "={{ $json.prompt }}",
-        "count": 4,
+        "count": 1,
         "dryRun": false,
         "storeResult": true,
         "wait": true,
-        "waitSeconds": 300,
-        "publish": true,
-        "downloadOutput": false,
+        "waitSeconds": 180,
+        "publish": false,
         "options": {
-          "collection": "carousel"
+          "collection": "product-scenes"
         }
       },
-      "id": "a1b2c3d4-0002-4c00-8000-000000000002",
-      "name": "Generate 4 Cards",
+      "id": "b2c3d4e5-0003-4c00-8000-000000000003",
+      "name": "Generate the Scene",
       "type": "n8n-nodes-imagestep.imageStep",
       "typeVersion": 1,
       "position": [
@@ -89,16 +88,36 @@
     },
     {
       "parameters": {
-        "jsCode": "// One row per sheet row: the four published URLs as url1..url4 plus the job id.\nreturn $input.all().map((item) => {\n  const urls = (item.json.outputs || []).map((o) => o.publicUrl);\n  return {\n    json: {\n      row_number: $('Google Sheets Trigger').item.json.row_number,\n      jobId: item.json.jobId,\n      status: item.json.status,\n      url1: urls[0] || '',\n      url2: urls[1] || '',\n      url3: urls[2] || '',\n      url4: urls[3] || ''\n    }\n  };\n});"
+        "resource": "op",
+        "operation": "run",
+        "op": "resize",
+        "inputMode": "assetIds",
+        "assetIds": "={{ $json.outputs[0].assetId }}",
+        "parameters": "{\"width\": 1080, \"height\": 1350, \"fit\": \"cover\", \"gravity\": \"attention\", \"withoutEnlargement\": false}",
+        "dryRun": false,
+        "storeResult": true,
+        "wait": true,
+        "waitSeconds": 120,
+        "publish": true,
+        "downloadOutput": false,
+        "options": {
+          "collection": "product-scenes"
+        }
       },
-      "id": "a1b2c3d4-0003-4c00-8000-000000000003",
-      "name": "Four URLs Per Row",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "b2c3d4e5-0004-4c00-8000-000000000004",
+      "name": "Instagram Size (4:5)",
+      "type": "n8n-nodes-imagestep.imageStep",
+      "typeVersion": 1,
       "position": [
         780,
         0
-      ]
+      ],
+      "credentials": {
+        "imageStepApi": {
+          "id": "REPLACE_ME",
+          "name": "ImageStep account"
+        }
+      }
     },
     {
       "parameters": {
@@ -107,7 +126,7 @@
           "__rl": true,
           "mode": "list",
           "value": "REPLACE_WITH_SPREADSHEET_ID",
-          "cachedResultName": "Carousel"
+          "cachedResultName": "Product scenes"
         },
         "sheetName": {
           "__rl": true,
@@ -118,11 +137,8 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "row_number": "={{ $json.row_number }}",
-            "url1": "={{ $json.url1 }}",
-            "url2": "={{ $json.url2 }}",
-            "url3": "={{ $json.url3 }}",
-            "url4": "={{ $json.url4 }}",
+            "row_number": "={{ $('Build the Prompt').item.json.row_number }}",
+            "url": "={{ $json.outputs[0].publicUrl }}",
             "jobId": "={{ $json.jobId }}",
             "status": "={{ $json.status }}"
           },
@@ -142,8 +158,8 @@
               "removed": false
             },
             {
-              "id": "headline",
-              "displayName": "headline",
+              "id": "scene",
+              "displayName": "scene",
               "type": "string",
               "required": false,
               "defaultMatch": false,
@@ -151,44 +167,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "subline",
-              "displayName": "subline",
-              "type": "string",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "url1",
-              "displayName": "url1",
-              "type": "string",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "url2",
-              "displayName": "url2",
-              "type": "string",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "url3",
-              "displayName": "url3",
-              "type": "string",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "url4",
-              "displayName": "url4",
+              "id": "url",
+              "displayName": "url",
               "type": "string",
               "required": false,
               "defaultMatch": false,
@@ -217,8 +197,8 @@
         },
         "options": {}
       },
-      "id": "a1b2c3d4-0004-4c00-8000-000000000004",
-      "name": "Write URLs Back",
+      "id": "b2c3d4e5-0005-4c00-8000-000000000005",
+      "name": "Write Back to the Row",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
@@ -249,29 +229,29 @@
       "main": [
         [
           {
-            "node": "Generate 4 Cards",
+            "node": "Generate the Scene",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Generate 4 Cards": {
+    "Generate the Scene": {
       "main": [
         [
           {
-            "node": "Four URLs Per Row",
+            "node": "Instagram Size (4:5)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Four URLs Per Row": {
+    "Instagram Size (4:5)": {
       "main": [
         [
           {
-            "node": "Write URLs Back",
+            "node": "Write Back to the Row",
             "type": "main",
             "index": 0
           }

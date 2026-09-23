@@ -1,5 +1,5 @@
 {
-  "name": "ImageStep recipe — social carousel: Sheet row → 4 cards, same character → URLs back",
+  "name": "ImageStep recipe — templated cards: Sheet row → an HTML/CSS template rendered → JPEG → URL back",
   "nodes": [
     {
       "parameters": {
@@ -14,7 +14,7 @@
           "__rl": true,
           "mode": "list",
           "value": "REPLACE_WITH_SPREADSHEET_ID",
-          "cachedResultName": "Carousel"
+          "cachedResultName": "Promo cards"
         },
         "sheetName": {
           "__rl": true,
@@ -25,7 +25,7 @@
         "event": "rowAdded",
         "options": {}
       },
-      "id": "a1b2c3d4-0001-4c00-8000-000000000001",
+      "id": "c3d4e5f6-0001-4c00-8000-000000000001",
       "name": "Google Sheets Trigger",
       "type": "n8n-nodes-base.googleSheetsTrigger",
       "typeVersion": 1,
@@ -42,38 +42,55 @@
     },
     {
       "parameters": {
-        "jsCode": "// The row brings the scene; the preset's subject brings the character. {{subject.hero}} is expanded by ImageStep to\n// the words saved on the preset — it is built here, in code, because n8n reads {{ }} in a field as its own expression.\nreturn $input.all().map((item) => ({\n  json: {\n    row_number: item.json.row_number,\n    prompt: `${item.json.headline}. ${item.json.subline}. Social carousel card, {{subject.hero}} as the hero, clean background with room for text, 4:5 portrait.`\n  }\n}));"
-      },
-      "id": "a1b2c3d4-0005-4c00-8000-000000000005",
-      "name": "Build the Prompt",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        260,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "resource": "preset",
+        "resource": "op",
         "operation": "run",
-        "preset": "carousel-brand",
-        "presetVersion": 0,
+        "op": "render_template",
         "inputMode": "none",
-        "prompt": "={{ $json.prompt }}",
-        "count": 4,
+        "parameters": "={{ JSON.stringify({ templateId: 'promo-card', items: [{ brand: $json.brand, title: $json.title, subtitle: $json.subtitle, price: $json.price, cta: $json.cta }] }) }}",
         "dryRun": false,
         "storeResult": true,
         "wait": true,
-        "waitSeconds": 300,
+        "waitSeconds": 120,
+        "publish": false,
+        "options": {
+          "collection": "templated-cards"
+        }
+      },
+      "id": "c3d4e5f6-0002-4c00-8000-000000000002",
+      "name": "Render the Card",
+      "type": "n8n-nodes-imagestep.imageStep",
+      "typeVersion": 1,
+      "position": [
+        260,
+        0
+      ],
+      "credentials": {
+        "imageStepApi": {
+          "id": "REPLACE_ME",
+          "name": "ImageStep account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "op",
+        "operation": "run",
+        "op": "convert",
+        "inputMode": "assetIds",
+        "assetIds": "={{ $json.outputs[0].assetId }}",
+        "parameters": "{\"format\": \"jpeg\", \"quality\": 88}",
+        "dryRun": false,
+        "storeResult": true,
+        "wait": true,
+        "waitSeconds": 60,
         "publish": true,
         "downloadOutput": false,
         "options": {
-          "collection": "carousel"
+          "collection": "templated-cards"
         }
       },
-      "id": "a1b2c3d4-0002-4c00-8000-000000000002",
-      "name": "Generate 4 Cards",
+      "id": "c3d4e5f6-0003-4c00-8000-000000000003",
+      "name": "To JPEG",
       "type": "n8n-nodes-imagestep.imageStep",
       "typeVersion": 1,
       "position": [
@@ -89,25 +106,12 @@
     },
     {
       "parameters": {
-        "jsCode": "// One row per sheet row: the four published URLs as url1..url4 plus the job id.\nreturn $input.all().map((item) => {\n  const urls = (item.json.outputs || []).map((o) => o.publicUrl);\n  return {\n    json: {\n      row_number: $('Google Sheets Trigger').item.json.row_number,\n      jobId: item.json.jobId,\n      status: item.json.status,\n      url1: urls[0] || '',\n      url2: urls[1] || '',\n      url3: urls[2] || '',\n      url4: urls[3] || ''\n    }\n  };\n});"
-      },
-      "id": "a1b2c3d4-0003-4c00-8000-000000000003",
-      "name": "Four URLs Per Row",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        780,
-        0
-      ]
-    },
-    {
-      "parameters": {
         "operation": "update",
         "documentId": {
           "__rl": true,
           "mode": "list",
           "value": "REPLACE_WITH_SPREADSHEET_ID",
-          "cachedResultName": "Carousel"
+          "cachedResultName": "Promo cards"
         },
         "sheetName": {
           "__rl": true,
@@ -118,13 +122,9 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "row_number": "={{ $json.row_number }}",
-            "url1": "={{ $json.url1 }}",
-            "url2": "={{ $json.url2 }}",
-            "url3": "={{ $json.url3 }}",
-            "url4": "={{ $json.url4 }}",
-            "jobId": "={{ $json.jobId }}",
-            "status": "={{ $json.status }}"
+            "row_number": "={{ $('Google Sheets Trigger').item.json.row_number }}",
+            "url": "={{ $json.outputs[0].publicUrl }}",
+            "jobId": "={{ $json.jobId }}"
           },
           "matchingColumns": [
             "row_number"
@@ -142,8 +142,8 @@
               "removed": false
             },
             {
-              "id": "headline",
-              "displayName": "headline",
+              "id": "brand",
+              "displayName": "brand",
               "type": "string",
               "required": false,
               "defaultMatch": false,
@@ -151,8 +151,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "subline",
-              "displayName": "subline",
+              "id": "title",
+              "displayName": "title",
               "type": "string",
               "required": false,
               "defaultMatch": false,
@@ -160,8 +160,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "url1",
-              "displayName": "url1",
+              "id": "subtitle",
+              "displayName": "subtitle",
               "type": "string",
               "required": false,
               "defaultMatch": false,
@@ -169,8 +169,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "url2",
-              "displayName": "url2",
+              "id": "price",
+              "displayName": "price",
               "type": "string",
               "required": false,
               "defaultMatch": false,
@@ -178,8 +178,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "url3",
-              "displayName": "url3",
+              "id": "cta",
+              "displayName": "cta",
               "type": "string",
               "required": false,
               "defaultMatch": false,
@@ -187,8 +187,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "url4",
-              "displayName": "url4",
+              "id": "url",
+              "displayName": "url",
               "type": "string",
               "required": false,
               "defaultMatch": false,
@@ -203,26 +203,17 @@
               "defaultMatch": false,
               "display": true,
               "canBeUsedToMatch": true
-            },
-            {
-              "id": "status",
-              "displayName": "status",
-              "type": "string",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true
             }
           ]
         },
         "options": {}
       },
-      "id": "a1b2c3d4-0004-4c00-8000-000000000004",
-      "name": "Write URLs Back",
+      "id": "c3d4e5f6-0004-4c00-8000-000000000004",
+      "name": "Write Back to the Row",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        1040,
+        780,
         0
       ],
       "credentials": {
@@ -238,40 +229,29 @@
       "main": [
         [
           {
-            "node": "Build the Prompt",
+            "node": "Render the Card",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Build the Prompt": {
+    "Render the Card": {
       "main": [
         [
           {
-            "node": "Generate 4 Cards",
+            "node": "To JPEG",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Generate 4 Cards": {
+    "To JPEG": {
       "main": [
         [
           {
-            "node": "Four URLs Per Row",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Four URLs Per Row": {
-      "main": [
-        [
-          {
-            "node": "Write URLs Back",
+            "node": "Write Back to the Row",
             "type": "main",
             "index": 0
           }
