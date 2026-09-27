@@ -14,7 +14,7 @@ re-generation. The AI op and the two deterministic ops run side by side as three
 ## What you need
 
 - An ImageStep API key (`IMAGESTEP_API_KEY`).
-- **Script**: Node 18+ and a product photo (JPEG / PNG / WebP / HEIC all fine).
+- **Script**: Node 20+ and a product photo (JPEG / PNG / WebP / HEIC all fine).
 - **n8n**: the Google Drive and Google Sheets credentials plus the `n8n-nodes-imagestep` node; a
   Drive folder to drop photos into and a Sheet with columns `file`, `variant`, `publicUrl`,
   `width`, `height`, `jobId`.

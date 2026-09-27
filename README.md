@@ -22,7 +22,7 @@ copy it, change it, ship it.
 
 ## Quick start
 
-You need Node 18+ and an ImageStep API key ([console](https://imagestep.dev/keys?utm_source=github&utm_medium=recipes)
+You need Node 20+ and an ImageStep API key ([console](https://imagestep.dev/keys?utm_source=github&utm_medium=recipes)
 → API keys).
 
 ```sh

@@ -53,11 +53,12 @@ console.log(`preset ${pinned} (${model}) subject=${subjectName} images=${referen
 
 // 3. Rows → images. The row's prompt replaces the step's prompt (the preset's ONE AI step), and it writes
 //    {{subject.<name>}} rather than re-describing the subject — the server expands it to the stored
-//    descriptor, so every row says the same words. Two jobs at a time (the AI concurrency limit).
+//    descriptor, so every row says the same words. No input images: the preset starts from a prompt.
+//    Two jobs at a time (the AI concurrency limit).
 const rows = parseCsv(await readFile(rowsFile, "utf8"));
 if (!rows.length) fail(`${rowsFile} has no rows (needs headline, subline)`);
 
-const estimate = await client.ops.generate(promptFor(rows[0]), { presetId: pinned, count: perRow, dryRun: true });
+const estimate = await client.presets.run(pinned, [], { prompt: promptFor(rows[0]), count: perRow, dryRun: true });
 console.log(`dry run: ${estimate.estimatedCredits} credits per row × ${rows.length} rows (balance ${estimate.creditBalance})`);
 if (args["dry-run"]) process.exit(0);
 
@@ -65,8 +66,8 @@ const results = [];
 for (let i = 0; i < rows.length; i += 2) {
   const batch = rows.slice(i, i + 2).map(async (row, j) => {
     const idx = i + j + 1;
-    const job = await client.ops.generate(promptFor(row), {
-      presetId: pinned,
+    const job = await client.presets.run(pinned, [], {
+      prompt: promptFor(row),
       count: perRow,
       collection: `carousel-${slugify(row.headline)}`,
       wait: { timeoutMs: 300_000, onProgress: (p) => process.stdout.write(`\rrow ${idx}: ${p.completedItems ?? 0}/${p.totalItems}`) }

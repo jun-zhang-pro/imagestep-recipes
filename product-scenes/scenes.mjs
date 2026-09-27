@@ -51,15 +51,16 @@ const pinned = `${preset.slug}@${preset.version}`;
 console.log(`preset ${pinned} (${model}), ${scenes.length} scenes × ${sizes.length} sizes`);
 
 // 2. Price the whole run first: the model call per scene; the sizes are a deterministic job.
-const estimate = await client.ops.generate(promptFor(scenes[0]), { presetId: pinned, dryRun: true });
+const estimate = await client.presets.run(pinned, [], { prompt: promptFor(scenes[0]), dryRun: true });
 console.log(`dry run: ${estimate.estimatedCredits} credits per scene × ${scenes.length} (balance ${estimate.creditBalance}); the sizes cost no credits`);
 if (args["dry-run"]) process.exit(0);
 
-// 3. One job per scene — each scene is its own prompt over the same subject. Two at a time (the AI concurrency limit).
+// 3. One job per scene — each scene is its own prompt over the same subject, no input image. Two at a time (the AI
+//    concurrency limit).
 const made = [];
 for (let i = 0; i < scenes.length; i += 2) {
   const batch = scenes.slice(i, i + 2).map(async (scene) => {
-    const job = await client.ops.generate(promptFor(scene), { presetId: pinned, collection, wait: { timeoutMs: 300_000 } });
+    const job = await client.presets.run(pinned, [], { prompt: promptFor(scene), collection, wait: { timeoutMs: 300_000 } });
     const [asset] = await client.jobs.outputs(job);
     console.log(`scene "${scene}" → ${asset.id} (job ${job.id})`);
     return { scene, jobId: job.id, assetId: asset.id };
@@ -69,7 +70,7 @@ for (let i = 0; i < scenes.length; i += 2) {
 
 // 4. Every size of every scene in ONE job: the scenes by id, one variant per size, cropped to the busiest region.
 //    `withoutEnlargement: false` because a generated image is 1024 px and the sizes are bigger: resize never upscales
-//    by default, and a cover box it may not fill comes back in another shape (1080×1350 → 1024×1024).
+//    by default, and a cover box it may not fill comes back in the right shape but smaller (1080×1350 → 819×1024).
 const sized = await client.ops.resize(
   made.map((m) => m.assetId),
   { fit: "cover", gravity: "attention", withoutEnlargement: false },

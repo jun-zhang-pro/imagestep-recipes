@@ -16,7 +16,7 @@ either half and the preset gets a new version; every row records the version tha
 - 1–3 clean reference images of the character / product (front-facing, plain background works best).
   `examples/hero.jpg` is one.
 - One sentence of locked wording for them (`--describe`) — what the pictures cannot say themselves.
-- **Script**: Node 18+, the rows as a CSV (`headline,subline` — export your sheet, or start from `rows.example.csv`).
+- **Script**: Node 20+, the rows as a CSV (`headline,subline` — export your sheet, or start from `rows.example.csv`).
 - **n8n**: the Google Sheets credential and the `n8n-nodes-imagestep` community node; a sheet with columns `headline`,
   `subline`, `url1`…`url4`, `jobId`, `status`.
 

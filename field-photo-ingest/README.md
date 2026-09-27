@@ -6,13 +6,14 @@ the collection name carries coordinates (3 decimals ≈ 100 m), which is what a 
 geocoding pass wants anyway.
 
 Reading metadata costs nothing and needs no job: once an upload has finished ingesting, the asset already carries its
-EXIF under exiftool's names — `DateTimeOriginal` as an ISO date, `GPSLatitude` / `GPSLongitude` as signed decimals —
-so reading it is one `GET`. HEIC is decoded server-side; the published file is a browser-friendly rendition.
+EXIF under exiftool's names — `DateTimeOriginal` as an ISO-8601 instant, `GPSLatitude` / `GPSLongitude` as signed
+decimals — so the upload's answer is the read. HEIC is decoded server-side; the published file is a browser-friendly
+rendition.
 
 ## What you need
 
 - An ImageStep API key (`IMAGESTEP_API_KEY`).
-- **Script**: Node 18+ and a folder of photos (`.heic` / `.jpg` / `.png`; anything without EXIF still ingests, it just
+- **Script**: Node 20+ and a folder of photos (`.heic` / `.jpg` / `.png`; anything without EXIF still ingests, it just
   lands under `unknown-date/no-gps`). `examples/field/` is one, with one photo whose EXIF says August 2026 in
   Yosemite Valley.
 - **n8n**: Google Drive + Google Sheets credentials, the `n8n-nodes-imagestep` node, and one generic *Header Auth*
@@ -28,12 +29,14 @@ node field-photo-ingest/ingest.mjs examples/field          # writes examples/fie
 node field-photo-ingest/ingest.mjs ./photos --out site-a.csv --concurrency 4
 ```
 
-Per photo: upload (waits for ingest) → `ops.readMetadata` → `DateTimeOriginal` → `YYYY-MM`, `GPSLatitude` /
-`GPSLongitude` → `lat,lon` → `assets.setCollection(id, "2026-08/37.746,-119.594")` → `assets.publish`. Uploads run
-four at a time (sha1 dedupe: re-running reuses what is already there). The manifest has `file, assetId, takenAt,
-latitude, longitude, collection, width, height, publicUrl`. Later, `client.assets.list({ collection:
-"2026-08/37.746,-119.594" })` returns the photos of one place and month, and `client.assets.collections()` lists every
-place you have filed.
+The whole folder goes up with one `assets.uploadMany` — staged and finished in one call each, the bytes sent four at a
+time (`--concurrency`), one status call per tick until every ingest is done; a file the service refuses costs only its
+own row, and sha1 dedupe means a re-run reuses what is already there. Then per photo, from the asset the upload
+returned: `DateTimeOriginal` → `YYYY-MM`, `GPSLatitude` / `GPSLongitude` → `lat,lon`. Each place is filed with one
+`assets.setCollection(ids, "2026-08/37.746,-119.594")`, and everything is published with one `assets.publish(ids)`.
+The manifest has `file, assetId, takenAt, latitude, longitude, collection, width, height, publicUrl`. Later,
+`client.assets.list({ collection: "2026-08/37.746,-119.594" })` returns the photos of one place and month, and
+`client.assets.collections()` lists every place you have filed.
 
 ## Run the n8n template
 

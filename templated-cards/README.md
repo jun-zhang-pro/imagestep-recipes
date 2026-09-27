@@ -10,13 +10,13 @@ posting → published. No model anywhere: the same row always makes the same car
 - **One job per batch.** `render_template` takes up to 500 rows in one call, one PNG per row; a row that cannot render
   fails only its own item. The PNGs then go by asset id into one `convert` job, because what a feed wants is a JPEG.
 - **What it will not do**: fetch from the internet while rendering. Templates render with JavaScript off and every
-  external request blocked (images from your own ImageStep assets are the exception), so a card cannot change because a
-  URL did.
+  external request blocked — the exceptions are `data:` URLs and a published asset's `publicUrl` on ImageStep's own
+  host — so a card cannot change because a URL did.
 
 ## What you need
 
 - An ImageStep API key (`IMAGESTEP_API_KEY`).
-- **Script**: Node 18+ and the rows as a CSV — start from `rows.example.csv`.
+- **Script**: Node 20+ and the rows as a CSV — start from `rows.example.csv`.
 - **n8n**: the Google Sheets credential and the `n8n-nodes-imagestep` community node; a sheet with columns `brand`,
   `title`, `subtitle`, `price`, `cta`, `url`, `jobId`.
 
