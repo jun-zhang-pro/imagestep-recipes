@@ -123,8 +123,8 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.imagestep.dev/api/v1/assets/update",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "imageStepApi",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ ids: [$json.assetId], collection: $json.collection, published: true }) }}",
@@ -139,9 +139,9 @@
         0
       ],
       "credentials": {
-        "httpHeaderAuth": {
+        "imageStepApi": {
           "id": "REPLACE_ME",
-          "name": "ImageStep ApiKey header (Authorization: ApiKey is_sk_…)"
+          "name": "ImageStep account"
         }
       }
     },

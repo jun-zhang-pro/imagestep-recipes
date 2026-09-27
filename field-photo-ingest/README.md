@@ -16,8 +16,8 @@ rendition.
 - **Script**: Node 20+ and a folder of photos (`.heic` / `.jpg` / `.png`; anything without EXIF still ingests, it just
   lands under `unknown-date/no-gps`). `examples/field/` is one, with one photo whose EXIF says August 2026 in
   Yosemite Valley.
-- **n8n**: Google Drive + Google Sheets credentials, the `n8n-nodes-imagestep` node, and one generic *Header Auth*
-  credential (`Authorization: ApiKey is_sk_…`) for the single HTTP Request node that files and publishes. A Drive
+- **n8n**: Google Drive + Google Sheets credentials and the `n8n-nodes-imagestep` node — its ImageStep credential also
+  signs the one HTTP Request node that files and publishes (the node has no "set collection" operation). A Drive
   folder the phone syncs into, and a sheet as the manifest.
 
 ## Run the script
@@ -40,10 +40,10 @@ The manifest has `file, assetId, takenAt, latitude, longitude, collection, width
 
 ## Run the n8n template
 
-Import `n8n-template.json`, then set the Drive folder on **New Field Photo**, the Header Auth credential on
-**Collection & Publish**, the sheet on **Append Manifest Row**, and the ImageStep credential on the three ImageStep
-nodes. Sync a photo into the folder: within a minute it is in the sheet with its date, coordinates, collection and
-URL.
+Import `n8n-template.json`, then set the Drive folder on **New Field Photo**, the sheet on **Append Manifest Row**, and
+the ImageStep credential on the three ImageStep nodes and on **Collection & Publish** (HTTP Request → Authentication:
+Predefined Credential Type → ImageStep API). Sync a photo into the folder: within a minute it is in the sheet with its
+date, coordinates, collection and URL.
 
 ## What it costs
 
