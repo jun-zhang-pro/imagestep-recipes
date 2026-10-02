@@ -3,6 +3,86 @@
   "nodes": [
     {
       "parameters": {
+        "content": "## Same character on every carousel card\n\nEvery row you add to a Google Sheet becomes four social-carousel images with the same character on all of them, published, with the four URLs written back into the row. Built on [ImageStep](https://imagestep.dev/?utm_source=n8n-templates&utm_medium=template&utm_campaign=social-carousel), an image API for automations.\n\n### How it works\n1. **Google Sheets Trigger** picks up a new row (`headline`, `subline`).\n2. **Build the Prompt** writes the row's scene with `{{subject.hero}}` where the character goes; ImageStep fills in the wording saved on the preset. It is a Code node because n8n reads `{{ }}` in a field as its own expression.\n3. **Generate 4 Cards** runs the ImageStep preset `carousel-brand` with Count 4. Its subject (reference images plus a locked description) goes with every generation, so the fortieth row draws the character the first one did.\n4. **Four URLs Per Row** and **Write URLs Back** put `url1` to `url4`, the job id and the status into the same row.\n\n### Setup\n1. Install the ImageStep node (`n8n-nodes-imagestep`) and add an ImageStep credential with an API key from [imagestep.dev/keys](https://imagestep.dev/keys?utm_source=n8n-templates&utm_medium=template&utm_campaign=social-carousel).\n2. Save the `carousel-brand` preset once: the [recipe's script](https://github.com/jun-zhang-pro/imagestep-recipes/tree/main/social-carousel?utm_source=n8n-templates&utm_medium=template&utm_campaign=social-carousel) does it from your reference images.\n3. Make a sheet with the columns `headline`, `subline`, `url1` to `url4`, `jobId` and `status`, and pick it in both Google Sheets nodes.\n4. Turn on **Dry Run** in Generate 4 Cards for the first row: it prices the run and spends nothing.\n\n### Customization tips\n- Change the scene wording in Build the Prompt, and keep `{{subject.hero}}`.\n- **Count** sets the cards per row; **Version** pins a preset version.\n- More pipelines and the pictures a real run made: [imagestep.dev/docs/recipes](https://imagestep.dev/docs/recipes?utm_source=n8n-templates&utm_medium=template&utm_campaign=social-carousel#social-carousel).",
+        "height": 780,
+        "width": 560,
+        "color": 1
+      },
+      "id": "a1b2c3d4-0010-4c00-8000-000000000010",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -660,
+        -380
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 1. A new row comes in\nEvery minute the trigger looks for rows added to the sheet. Each row needs `headline` and `subline`.",
+        "height": 240,
+        "width": 240,
+        "color": 7
+      },
+      "id": "a1b2c3d4-0011-4c00-8000-000000000011",
+      "name": "Sticky Note 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -280
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 2. The scene, not the character\nThe row describes the scene. `{{subject.hero}}` stands in for the character, and ImageStep fills in the saved wording.",
+        "height": 240,
+        "width": 240,
+        "color": 7
+      },
+      "id": "a1b2c3d4-0012-4c00-8000-000000000012",
+      "name": "Sticky Note 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        220,
+        -280
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 3. Four cards, one character\nOne job through the pinned preset. Its reference images and locked description are sent with every card. Turn on Dry Run to see the price first.",
+        "height": 240,
+        "width": 240,
+        "color": 7
+      },
+      "id": "a1b2c3d4-0013-4c00-8000-000000000013",
+      "name": "Sticky Note 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        480,
+        -280
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 4. URLs back into the row\nThe four published URLs, the job id and the status go into the row that started it, matched on `row_number`.",
+        "height": 240,
+        "width": 500,
+        "color": 7
+      },
+      "id": "a1b2c3d4-0014-4c00-8000-000000000014",
+      "name": "Sticky Note 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        740,
+        -280
+      ]
+    },
+    {
+      "parameters": {
         "pollTimes": {
           "item": [
             {
